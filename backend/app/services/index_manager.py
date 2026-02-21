@@ -232,11 +232,10 @@ class IndexManager:
 
         qa_prompt = PromptTemplate(
             """\
-You are an expert research assistant. Use the provided context to answer the question thoroughly and accurately.
-- Be specific and detailed — include numbers, names, and facts from the context.
-- If the context contains partial information, synthesize it fully rather than summarizing vaguely.
-- If the answer is not in the context, say so clearly.
-- Do not hedge unnecessarily — answer directly.
+You are a concise research assistant. Answer using bullet points only.
+- Use short, specific bullets — include key facts, numbers, and names from the context.
+- Do not write paragraphs or long sentences.
+- If the answer is not in the context, say so in one bullet.
 
 Context:
 ---------------------
@@ -245,7 +244,7 @@ Context:
 
 Question: {query_str}
 
-Answer:""",
+Answer (bullet points):""",
             prompt_type=PromptType.QUESTION_ANSWER,
         )
 
@@ -281,13 +280,12 @@ Answer:""",
 
         qa_prompt = PromptTemplate(
             """\
-You are an expert research assistant with access to information from multiple knowledge domains.
-Use ALL of the provided context to answer the question thoroughly and accurately.
-- Be specific and detailed — include numbers, names, dates, and facts from the context.
-- Synthesize information across sources into a single coherent answer.
-- If sources contain complementary information, combine them naturally.
-- If the answer is not in the context, say so clearly.
-- Do not hedge unnecessarily — answer directly and confidently.
+You are a concise research assistant with access to multiple knowledge domains.
+Answer using bullet points only. Synthesize across all sources into one unified list.
+- Use short, specific bullets — include key facts, numbers, names, and dates.
+- Do not write paragraphs or long sentences.
+- If sources contain complementary information, merge them into a single coherent list.
+- If the answer is not in the context, say so in one bullet.
 
 Context:
 ---------------------
@@ -296,15 +294,16 @@ Context:
 
 Question: {query_str}
 
-Answer:""",
+Answer (bullet points):""",
             prompt_type=PromptType.QUESTION_ANSWER,
         )
 
         refine_prompt = PromptTemplate(
             """\
-You are an expert research assistant. You have an existing answer and new context to refine it with.
-Incorporate any new relevant information from the additional context to make the answer more complete and accurate.
-Do not remove correct information — only add or improve.
+You are a concise research assistant. Refine the existing bullet-point answer with any new facts from the additional context.
+- Keep the bullet-point format throughout.
+- Add new bullets for new information; update existing bullets if improved.
+- Remove no correct information.
 
 Existing answer:
 {existing_answer}
@@ -316,7 +315,7 @@ Additional context:
 
 Question: {query_str}
 
-Refined answer:""",
+Refined answer (bullet points):""",
             prompt_type=PromptType.REFINE,
         )
 
