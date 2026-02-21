@@ -298,32 +298,10 @@ Answer (bullet points):""",
             prompt_type=PromptType.QUESTION_ANSWER,
         )
 
-        refine_prompt = PromptTemplate(
-            """\
-You are a concise research assistant. Refine the existing bullet-point answer with any new facts from the additional context.
-- Keep the bullet-point format throughout.
-- Add new bullets for new information; update existing bullets if improved.
-- Remove no correct information.
-
-Existing answer:
-{existing_answer}
-
-Additional context:
----------------------
-{context_msg}
----------------------
-
-Question: {query_str}
-
-Refined answer (bullet points):""",
-            prompt_type=PromptType.REFINE,
-        )
-
         synthesizer = get_response_synthesizer(
-            response_mode="refine",
+            response_mode="compact",
             streaming=streaming,
             text_qa_template=qa_prompt,
-            refine_template=refine_prompt,
         )
         return synthesizer.synthesize(
             query=QueryBundle(query_str=question),
