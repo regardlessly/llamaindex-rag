@@ -142,6 +142,24 @@ async def list_documents(name: str, mgr: IndexManager = Depends(get_index_manage
         raise _domain_not_found(name)
 
 
+# ── Delete document ───────────────────────────────────────────────────────────
+
+@router.delete("/{name}/documents/{filename:path}", status_code=204)
+async def delete_document(
+    name: str,
+    filename: str,
+    mgr: IndexManager = Depends(get_index_manager),
+):
+    if not mgr.domain_exists(name):
+        raise _domain_not_found(name)
+    try:
+        await mgr.delete_document(name, filename)
+    except DomainNotFoundError:
+        raise _domain_not_found(name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Document '{filename}' not found")
+
+
 # ── Multi-domain query (must be before /{name}/query to avoid path conflict) ──
 
 @router.post("/query")

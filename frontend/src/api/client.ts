@@ -39,6 +39,12 @@ export function getDocuments(domain: string): Promise<DocumentInfo[]> {
   return request(`/domains/${domain}/documents`);
 }
 
+export function deleteDocument(domain: string, filename: string): Promise<void> {
+  return fetch(`${BASE}/domains/${domain}/documents/${encodeURIComponent(filename)}`, {
+    method: 'DELETE',
+  }).then(() => undefined);
+}
+
 // ── Upload ────────────────────────────────────────────────────────────────────
 
 export async function uploadPdfs(domain: string, files: File[]): Promise<UploadResponse> {

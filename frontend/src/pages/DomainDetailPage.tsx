@@ -3,14 +3,26 @@ import { Link, useParams } from 'react-router-dom';
 import { ChatInterface } from '../components/ChatInterface';
 import { DocumentList } from '../components/DocumentList';
 import { PdfDropzone } from '../components/PdfDropzone';
-import { useDocuments, useUploadPdfs } from '../hooks/useDocuments';
+import { useDeleteDocument, useDocuments, useUploadPdfs } from '../hooks/useDocuments';
 
 export function DomainDetailPage() {
   const { name } = useParams<{ name: string }>();
   const domain = name!;
   const { data: documents, isLoading } = useDocuments(domain);
   const uploadMutation = useUploadPdfs(domain);
+  const deleteMutation = useDeleteDocument(domain);
   const [chatOpen, setChatOpen] = useState(true);
+  const [deletingFilename, setDeletingFilename] = useState<string | null>(null);
+
+  const handleDelete = async (filename: string) => {
+    if (!confirm(`Delete "${filename}" from this domain?`)) return;
+    setDeletingFilename(filename);
+    try {
+      await deleteMutation.mutateAsync(filename);
+    } finally {
+      setDeletingFilename(null);
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -46,7 +58,12 @@ export function DomainDetailPage() {
                 {documents ? `(${documents.length})` : ''}
               </span>
             </h2>
-            <DocumentList documents={documents ?? []} isLoading={isLoading} />
+            <DocumentList
+              documents={documents ?? []}
+              isLoading={isLoading}
+              onDelete={handleDelete}
+              deletingFilename={deletingFilename}
+            />
           </section>
         </div>
 

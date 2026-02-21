@@ -3,9 +3,11 @@ import type { DocumentInfo } from '../types';
 interface Props {
   documents: DocumentInfo[];
   isLoading: boolean;
+  onDelete?: (filename: string) => void;
+  deletingFilename?: string | null;
 }
 
-export function DocumentList({ documents, isLoading }: Props) {
+export function DocumentList({ documents, isLoading, onDelete, deletingFilename }: Props) {
   if (isLoading) {
     return <p style={styles.hint}>Loading documents...</p>;
   }
@@ -19,17 +21,33 @@ export function DocumentList({ documents, isLoading }: Props) {
         <tr>
           <th style={styles.th}>Filename</th>
           <th style={{ ...styles.th, textAlign: 'right' }}>Chunks</th>
+          {onDelete && <th style={{ ...styles.th, width: 40 }} />}
         </tr>
       </thead>
       <tbody>
-        {documents.map((doc) => (
-          <tr key={doc.doc_id} style={styles.row}>
-            <td style={styles.td}>{doc.filename}</td>
-            <td style={{ ...styles.td, textAlign: 'right', color: '#6c7086' }}>
-              {doc.num_chunks}
-            </td>
-          </tr>
-        ))}
+        {documents.map((doc) => {
+          const isDeleting = deletingFilename === doc.filename;
+          return (
+            <tr key={doc.doc_id} style={styles.row}>
+              <td style={styles.td}>{doc.filename}</td>
+              <td style={{ ...styles.td, textAlign: 'right', color: '#6c7086' }}>
+                {doc.num_chunks}
+              </td>
+              {onDelete && (
+                <td style={{ ...styles.td, textAlign: 'right' }}>
+                  <button
+                    style={styles.deleteBtn}
+                    onClick={() => onDelete(doc.filename)}
+                    disabled={isDeleting}
+                    title="Delete document"
+                  >
+                    {isDeleting ? '…' : '✕'}
+                  </button>
+                </td>
+              )}
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
@@ -62,5 +80,16 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#6c7086',
     fontSize: 14,
     margin: 0,
+  },
+  deleteBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#f38ba8',
+    cursor: 'pointer',
+    fontSize: 14,
+    padding: '2px 6px',
+    borderRadius: 4,
+    lineHeight: 1,
+    opacity: 0.7,
   },
 };

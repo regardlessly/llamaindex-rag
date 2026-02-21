@@ -4,6 +4,46 @@ import { useDomains } from '../hooks/useDomains';
 import type { ChatMessage, SourceChunk } from '../types';
 import { SourceChunkCard } from './SourceChunkCard';
 
+function SourcesDisclosure({ sources }: { sources: SourceChunk[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={disclosureStyles.wrap}>
+      <button style={disclosureStyles.toggle} onClick={() => setOpen((v) => !v)}>
+        <span style={disclosureStyles.arrow}>{open ? '▾' : '▸'}</span>
+        Sources ({sources.length})
+      </button>
+      {open && (
+        <div style={disclosureStyles.list}>
+          {sources.map((chunk, i) => (
+            <SourceChunkCard key={chunk.doc_id + i} chunk={chunk} index={i} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const disclosureStyles: Record<string, React.CSSProperties> = {
+  wrap: { width: '100%', maxWidth: '85%' },
+  toggle: {
+    background: 'none',
+    border: '1px solid #313244',
+    borderRadius: 6,
+    color: '#6c7086',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '4px 10px',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  arrow: { fontSize: 10 },
+  list: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 },
+};
+
 interface Props {
   /** Initial domain(s) pre-selected. If omitted, all domains shown unselected. */
   initialDomains?: string[];
@@ -144,12 +184,7 @@ export function ChatInterface({ initialDomains = [] }: Props) {
               {msg.content}
             </div>
             {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
-              <div style={styles.sources}>
-                <p style={styles.sourcesLabel}>Sources</p>
-                {msg.sources.map((chunk, i) => (
-                  <SourceChunkCard key={chunk.doc_id + i} chunk={chunk} index={i} />
-                ))}
-              </div>
+              <SourcesDisclosure sources={msg.sources} />
             )}
           </div>
         ))}
@@ -319,21 +354,6 @@ const styles: Record<string, React.CSSProperties> = {
   cursor: {
     animation: 'blink 1s step-end infinite',
     color: '#cba6f7',
-  },
-  sources: {
-    width: '100%',
-    maxWidth: '85%',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 8,
-  },
-  sourcesLabel: {
-    color: '#6c7086',
-    fontSize: 12,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-    margin: 0,
   },
   error: {
     color: '#f38ba8',

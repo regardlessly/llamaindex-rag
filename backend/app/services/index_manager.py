@@ -331,6 +331,35 @@ Refined answer:""",
             nodes=nodes,
         )
 
+    def _delete_document_sync(self, name: str, filename: str) -> None:
+        """Remove all per-page doc entries for a filename from the index and delete the PDF."""
+        index = self._get_or_load_index_sync(name)
+
+        # Collect all doc_ids that belong to this filename
+        to_delete = [
+            doc_id for doc_id in index.ref_doc_info
+            if doc_id == f"{name}::{filename}"             # legacy format
+            or doc_id.startswith(f"{name}::{filename}::")  # per-page format
+        ]
+
+        if not to_delete:
+            raise FileNotFoundError(filename)
+
+        for doc_id in to_delete:
+            index.delete_ref_doc(doc_id, delete_from_docstore=True)
+
+        index.storage_context.persist(persist_dir=str(self._index_dir(name)))
+
+        # Delete the PDF file from disk
+        pdf_path = self._pdf_dir(name) / filename
+        if pdf_path.exists():
+            pdf_path.unlink()
+
+        # Update doc_count
+        meta = self._read_meta(name)
+        meta["doc_count"] = len(index.ref_doc_info)
+        self._write_meta(name, meta)
+
     def _delete_domain_sync(self, name: str) -> None:
         self._instances.pop(name, None)
         domain_dir = self._domain_dir(name)
@@ -364,6 +393,11 @@ Refined answer:""",
         if not self.domain_exists(name):
             raise DomainNotFoundError(f"Domain '{name}' not found")
         await asyncio.to_thread(self._delete_domain_sync, name)
+
+    async def delete_document(self, name: str, filename: str) -> None:
+        if not self.domain_exists(name):
+            raise DomainNotFoundError(f"Domain '{name}' not found")
+        await asyncio.to_thread(self._delete_document_sync, name, filename)
 
     async def ingest_pdfs(self, name: str, pdf_paths: list[Path]) -> int:
         if not self.domain_exists(name):
