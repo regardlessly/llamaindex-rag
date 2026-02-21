@@ -164,10 +164,35 @@ class IndexManager:
         return docs
 
     def _query_sync(self, name: str, question: str, streaming: bool):
+        from llama_index.core import PromptTemplate
+        from llama_index.core.prompts import PromptType
+
         index = self._get_or_load_index_sync(name)
+
+        qa_prompt = PromptTemplate(
+            """\
+You are an expert research assistant. Use the provided context to answer the question thoroughly and accurately.
+- Be specific and detailed — include numbers, names, and facts from the context.
+- If the context contains partial information, synthesize it fully rather than summarizing vaguely.
+- If the answer is not in the context, say so clearly.
+- Do not hedge unnecessarily — answer directly.
+
+Context:
+---------------------
+{context_str}
+---------------------
+
+Question: {query_str}
+
+Answer:""",
+            prompt_type=PromptType.QUESTION_ANSWER,
+        )
+
         query_engine = index.as_query_engine(
             similarity_top_k=self._settings.similarity_top_k,
             streaming=streaming,
+            response_mode="compact",
+            text_qa_template=qa_prompt,
         )
         return query_engine.query(question)
 
@@ -187,13 +212,58 @@ class IndexManager:
 
     def _synthesize_sync(self, question: str, nodes: list, streaming: bool):
         """Run a single LLM synthesis pass over the merged node pool."""
-        from llama_index.core import get_response_synthesizer
+        from llama_index.core import PromptTemplate, get_response_synthesizer
+        from llama_index.core.prompts import PromptType
         from llama_index.core.schema import QueryBundle
 
         self._configure_llama_settings()
+
+        qa_prompt = PromptTemplate(
+            """\
+You are an expert research assistant with access to information from multiple knowledge domains.
+Use ALL of the provided context to answer the question thoroughly and accurately.
+- Be specific and detailed — include numbers, names, dates, and facts from the context.
+- Synthesize information across sources into a single coherent answer.
+- If sources contain complementary information, combine them naturally.
+- If the answer is not in the context, say so clearly.
+- Do not hedge unnecessarily — answer directly and confidently.
+
+Context:
+---------------------
+{context_str}
+---------------------
+
+Question: {query_str}
+
+Answer:""",
+            prompt_type=PromptType.QUESTION_ANSWER,
+        )
+
+        refine_prompt = PromptTemplate(
+            """\
+You are an expert research assistant. You have an existing answer and new context to refine it with.
+Incorporate any new relevant information from the additional context to make the answer more complete and accurate.
+Do not remove correct information — only add or improve.
+
+Existing answer:
+{existing_answer}
+
+Additional context:
+---------------------
+{context_msg}
+---------------------
+
+Question: {query_str}
+
+Refined answer:""",
+            prompt_type=PromptType.REFINE,
+        )
+
         synthesizer = get_response_synthesizer(
-            response_mode="compact",
+            response_mode="refine",
             streaming=streaming,
+            text_qa_template=qa_prompt,
+            refine_template=refine_prompt,
         )
         return synthesizer.synthesize(
             query=QueryBundle(query_str=question),

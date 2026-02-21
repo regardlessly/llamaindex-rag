@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     data_dir: Path = Path("./data")
     embedding_model: str = "text-embedding-3-small"
     llm_model: str = "gpt-4o"
-    similarity_top_k: int = 4
-    chunk_size: int = 512
-    chunk_overlap: int = 64
+    similarity_top_k: int = 10
+    chunk_size: int = 1024
+    chunk_overlap: int = 128
 
 
 @lru_cache
