@@ -204,19 +204,25 @@ class IndexManager:
 
     def _list_documents_sync(self, name: str) -> list[dict]:
         index = self._get_or_load_index_sync(name)
-        pdf_dir = self._pdf_dir(name)
 
-        docs = []
+        # Group per-page doc_ids back into a single entry per filename.
+        # doc_id format: "{domain}::{filename}::p{n}"  (new)
+        #            or: "{domain}::{filename}"         (legacy)
+        file_chunks: dict[str, int] = {}
         for doc_id, ref_info in index.ref_doc_info.items():
-            filename = doc_id.split("::", 1)[-1] if "::" in doc_id else doc_id
-            docs.append(
-                {
-                    "doc_id": doc_id,
-                    "filename": filename,
-                    "num_chunks": len(ref_info.node_ids),
-                }
-            )
-        return docs
+            # Strip domain prefix
+            without_domain = doc_id.split("::", 1)[-1] if "::" in doc_id else doc_id
+            # Strip ::pN page suffix if present
+            if "::" in without_domain:
+                filename = without_domain.rsplit("::", 1)[0]
+            else:
+                filename = without_domain
+            file_chunks[filename] = file_chunks.get(filename, 0) + len(ref_info.node_ids)
+
+        return [
+            {"doc_id": filename, "filename": filename, "num_chunks": chunks}
+            for filename, chunks in sorted(file_chunks.items())
+        ]
 
     def _query_sync(self, name: str, question: str, streaming: bool):
         from llama_index.core import PromptTemplate
