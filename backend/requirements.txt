@@ -8,5 +8,8 @@ llama-index-embeddings-openai==0.3.1
 llama-index-readers-file==0.4.11
 openai>=1.30.0,<2.0.0
 pypdf>=4.0.0
+pymupdf>=1.24.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
 aiofiles==24.1.0
 python-dotenv==1.0.0

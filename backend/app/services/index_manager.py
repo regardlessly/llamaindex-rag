@@ -124,17 +124,72 @@ class IndexManager:
         self._instances[name] = index
         return index
 
+    def _extract_text_from_pdf(self, pdf_path: Path) -> list:
+        """
+        Extract text from a PDF, falling back to OCR for image-based pages.
+        Returns a list of (page_num, text) tuples for non-empty pages.
+        """
+        import pypdf
+
+        pages = []
+        reader = pypdf.PdfReader(str(pdf_path))
+        for i, page in enumerate(reader.pages):
+            text = page.extract_text() or ""
+            text = text.strip()
+            if text:
+                pages.append((i, text))
+
+        # If fewer than 10% of pages have text, try OCR via pymupdf + pytesseract
+        if len(pages) < max(1, len(reader.pages) * 0.1):
+            try:
+                import fitz  # pymupdf
+                import pytesseract
+                from PIL import Image
+                import io
+
+                pages = []
+                doc = fitz.open(str(pdf_path))
+                for i, page in enumerate(doc):
+                    mat = fitz.Matrix(2.0, 2.0)  # 2x zoom for better OCR
+                    pix = page.get_pixmap(matrix=mat)
+                    img = Image.open(io.BytesIO(pix.tobytes("png")))
+                    text = pytesseract.image_to_string(img).strip()
+                    if text:
+                        pages.append((i, text))
+                doc.close()
+            except ImportError:
+                pass  # OCR deps not available, use what we have
+
+        return pages
+
     def _ingest_pdfs_sync(self, name: str, pdf_paths: list[Path]) -> int:
-        from llama_index.core import SimpleDirectoryReader
+        from llama_index.core.schema import Document
 
         index = self._get_or_load_index_sync(name)
 
         new_count = 0
         for pdf_path in pdf_paths:
-            reader = SimpleDirectoryReader(input_files=[str(pdf_path)])
-            documents = reader.load_data()
-            for doc in documents:
-                doc.doc_id = f"{name}::{pdf_path.name}"
+            pages = self._extract_text_from_pdf(pdf_path)
+
+            if not pages:
+                # Nothing extractable — skip silently
+                continue
+
+            # Each page gets a unique doc_id so refresh_ref_docs tracks them
+            # individually and doesn't collapse the whole PDF into one node.
+            documents = []
+            for page_num, text in pages:
+                doc = Document(
+                    text=text,
+                    doc_id=f"{name}::{pdf_path.name}::p{page_num}",
+                    metadata={
+                        "file_name": pdf_path.name,
+                        "domain": name,
+                        "page_label": str(page_num + 1),
+                    },
+                )
+                documents.append(doc)
+
             index.refresh_ref_docs(documents)
             new_count += len(documents)
 
