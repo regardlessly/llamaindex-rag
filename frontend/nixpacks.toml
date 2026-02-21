@@ -6,6 +6,7 @@ cmds = ["npm ci"]
 
 [phases.build]
 cmds = ["npm run build"]
+dependsOn = ["install"]
 
 [staticAssets]
 path = "dist"

@@ -4,3 +4,7 @@ builder = "nixpacks"
 [deploy]
 healthcheckPath = "/"
 healthcheckTimeout = 30
+
+[[variables]]
+name = "VITE_API_URL"
+required = true
