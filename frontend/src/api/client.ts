@@ -30,7 +30,7 @@ export function createDomain(name: string, description: string): Promise<Domain>
 }
 
 export function deleteDomain(name: string): Promise<void> {
-  return fetch(`/domains/${name}`, { method: 'DELETE' }).then(() => undefined);
+  return fetch(`${BASE}/domains/${name}`, { method: 'DELETE' }).then(() => undefined);
 }
 
 // ── Documents ─────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ export async function uploadPdfs(domain: string, files: File[]): Promise<UploadR
   for (const file of files) {
     form.append('files', file);
   }
-  const res = await fetch(`/domains/${domain}/upload`, { method: 'POST', body: form });
+  const res = await fetch(`${BASE}/domains/${domain}/upload`, { method: 'POST', body: form });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail ?? 'Upload failed');
@@ -75,8 +75,8 @@ export async function queryStream(
 ): Promise<void> {
   const url =
     domains.length === 1
-      ? `/domains/${domains[0]}/query`
-      : '/domains/query';
+      ? `${BASE}/domains/${domains[0]}/query`
+      : `${BASE}/domains/query`;
 
   const body =
     domains.length === 1
